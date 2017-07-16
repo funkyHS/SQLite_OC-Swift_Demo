@@ -13,14 +13,15 @@
 @implementation HSModelTool
 
 + (NSString *)tableName:(Class)cls {
-    return NSStringFromClass(cls);
+    return [NSStringFromClass(cls) lowercaseString];
 }
 + (NSString *)tmpTableName:(Class)cls {
-    return [NSStringFromClass(cls) stringByAppendingString:@"_tmp"];
+    return [[NSStringFromClass(cls) lowercaseString] stringByAppendingString:@"_tmp"];
 }
 
+
 // 有效的成员变量名称, 以及, 对应的类型
-+ (NSDictionary *)classIvarNameTypeDic:(Class)cls {
++ (NSDictionary *)getModelIvarNameIvarTypeDic:(Class)cls {
     
     // 获取这个类里面, 所有的成员变量以及类型
     
@@ -37,6 +38,7 @@
     
     
     for (int i = 0; i < outCount; i++) {
+        
         Ivar ivar = varList[i];
         
         // 1. 获取成员变量名称
@@ -52,9 +54,7 @@
         
         // 2. 获取成员变量类型
         NSString *type = [NSString stringWithUTF8String:ivar_getTypeEncoding(ivar)];
-        
         type = [type stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"@\""]];
-        
         
         [nameTypeDic setValue:type forKey:ivarName];
     }
@@ -63,10 +63,12 @@
     
 }
 
+
+
 // 所有的成员变量, 以及成员变量映射到数据库里面对应的类型
-+ (NSDictionary *)classIvarNameSqliteTypeDic:(Class)cls {
++ (NSDictionary *)getModelIvarNameSqlTypeDic:(Class)cls {
     
-    NSMutableDictionary *dic = [[self classIvarNameTypeDic:cls] mutableCopy];
+    NSMutableDictionary *dic = [[self getModelIvarNameIvarTypeDic:cls] mutableCopy];
     
     NSDictionary *typeDic = [self ocTypeToSqliteTypeDic];
     [dic enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *obj, BOOL * _Nonnull stop) {
@@ -77,10 +79,12 @@
     
 }
 
+
+
 // 拼接成SQLite所需语句 (age integer,b integer,....）
 + (NSString *)columnNamesAndTypesStr:(Class)cls {
     
-    NSDictionary *nameTypeDic = [self classIvarNameSqliteTypeDic:cls];
+    NSDictionary *nameTypeDic = [self getModelIvarNameSqlTypeDic:cls];
     //    {
     //        age = integer;
     //        b = integer;
@@ -102,18 +106,14 @@
     
 }
 
-//获取这个类里面 所有的字段组成的 排序后的数组
+
+
+//获取这个类里面 所有的字段组成的数组
 + (NSArray *)allTableSortedIvarNames:(Class)cls {
     
-    NSDictionary *dic = [self classIvarNameTypeDic:cls];
-    NSArray *keys = dic.allKeys;
-    keys = [keys sortedArrayUsingComparator:^NSComparisonResult(id  _Nonnull obj1, id  _Nonnull obj2) {
-        return [obj1 compare:obj2];
-    }];
-    return keys;
+    return [[self getModelIvarNameIvarTypeDic:cls] allKeys];
     
     // ( age, name, score, stuNum )
-
 }
 
 

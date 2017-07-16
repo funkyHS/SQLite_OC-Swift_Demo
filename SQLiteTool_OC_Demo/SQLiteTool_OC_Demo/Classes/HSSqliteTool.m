@@ -12,8 +12,6 @@
 
 #define kCachePath NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject
 
-//#define kCachePath @"/Users/Funky/Desktop"
-
 
 @implementation HSSqliteTool
 
@@ -65,16 +63,22 @@ sqlite3 *ppDb = nil;
     sqlite3_stmt *ppStmt = nil;
     if (sqlite3_prepare_v2(ppDb, sql.UTF8String, -1, &ppStmt, nil) != SQLITE_OK) {
         NSLog(@"准备语句编译失败");
+        // 释放资源
+        sqlite3_finalize(ppStmt);
+        [self closeDB];
         return nil;
     }
     
-    // 2. 绑定数据(省略)
     
-    // 3. 执行
-    // 大数组
+    // 2. 执行
     NSMutableArray *rowDicArray = [NSMutableArray array];
+    
+    // 如果下一行有记录, 就会返回 SQLITE_ROW, 会自动移动指针, 到下一行
     while (sqlite3_step(ppStmt) == SQLITE_ROW) {
         // 一行记录 -> 字典
+        // 一条记录 , 都会执行这个循环
+        // 解析一条记录 (列,  每一列的列名, 每一列的值)
+        
         // 1. 获取所有列的个数
         int columnCount = sqlite3_column_count(ppStmt);
         
@@ -93,19 +97,19 @@ sqlite3 *ppDb = nil;
             // 2.2.2 根据列的类型, 使用不同的函数, 进行获取
             id value = nil;
             switch (type) {
-                case SQLITE_INTEGER:
+                case SQLITE_INTEGER: // 整形
                     value = @(sqlite3_column_int(ppStmt, i));
                     break;
-                case SQLITE_FLOAT:
+                case SQLITE_FLOAT: // 浮点
                     value = @(sqlite3_column_double(ppStmt, i));
                     break;
-                case SQLITE_BLOB:
+                case SQLITE_BLOB: // 二进制
                     value = CFBridgingRelease(sqlite3_column_blob(ppStmt, i));
                     break;
                 case SQLITE_NULL:
                     value = @"";
                     break;
-                case SQLITE3_TEXT:
+                case SQLITE3_TEXT: // 文本
                     value = [NSString stringWithUTF8String: (const char *)sqlite3_column_text(ppStmt, i)];
                     break;
                     
@@ -119,9 +123,7 @@ sqlite3 *ppDb = nil;
     }
     
     
-    // 4. 重置(省略)
-    
-    // 5. 释放资源
+    // 3. 释放资源
     sqlite3_finalize(ppStmt);
     
     [self closeDB];
@@ -132,37 +134,44 @@ sqlite3 *ppDb = nil;
 // 事物 -- 处理多个语句  sqls 中存放多个语句
 + (BOOL)dealSqls:(NSArray <NSString *>*)sqls uid:(NSString *)uid {
     
+    [self openDB:uid];
+    
     // 1. 开始事务
-    [self beginTransaction:uid];
+    [self beginTransaction];
     
     // 2. 执行事务, 如果有一条执行失败, 则终止执行并执行回滚操作
     for (NSString *sql in sqls) {
-        BOOL result = [self deal:sql uid:uid];
-        if (result == NO) {
-            [self rollBackTransaction:uid];
+        BOOL result = sqlite3_exec(ppDb, sql.UTF8String, nil, nil, nil) == SQLITE_OK;
+        if (!result) {
+            [self rollBackTransaction];
             return NO;
         }
     }
     // 3. 提交事务
-    [self commitTransaction:uid];
+    [self commitTransaction];
+    
+    [self closeDB];
+    
     return YES;
 }
+
+
 
 #pragma mark - 私有方法
 
 // 开始事务
-+ (void)beginTransaction:(NSString *)uid {
-    [self deal:@"begin transaction" uid:uid];
++ (void)beginTransaction {
+    sqlite3_exec(ppDb, "begin transaction", nil, nil, nil);
 }
 
 // 提交事务
-+ (void)commitTransaction:(NSString *)uid {
-    [self deal:@"commit transaction" uid:uid];
++ (void)commitTransaction {
+    sqlite3_exec(ppDb, "commit transaction", nil, nil, nil);
 }
 
 // 回滚事务
-+ (void)rollBackTransaction:(NSString *)uid {
-    [self deal:@"rollback transaction" uid:uid];
++ (void)rollBackTransaction {
+    sqlite3_exec(ppDb, "rollback transaction", nil, nil, nil);
 }
 
 // 打开数据库

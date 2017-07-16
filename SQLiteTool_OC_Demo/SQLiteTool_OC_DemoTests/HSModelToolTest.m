@@ -28,11 +28,11 @@
 }
 
 -(void)testIvarNameTypeDic {
-    NSDictionary *dic = [HSModelTool classIvarNameTypeDic:[HSStudent class]];
+    NSDictionary *dic = [HSModelTool getModelIvarNameIvarTypeDic:[HSStudent class]];
     NSLog(@"%@", dic);
     
     
-    NSDictionary *dic1 = [HSModelTool classIvarNameSqliteTypeDic:[HSStudent class]];
+    NSDictionary *dic1 = [HSModelTool getModelIvarNameSqlTypeDic:[HSStudent class]];
     NSLog(@"%@", dic1);
     
 }

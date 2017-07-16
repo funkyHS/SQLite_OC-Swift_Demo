@@ -77,7 +77,7 @@
 
 - (void)testDeleteModelWhere2 {
     
-    [HSSqliteModelTool deleteModel:[HSStudent class] columnName:@"name" relation:ColumnNameToValueRelationTypeEqual value:@"rrrr" uid:nil];
+    [HSSqliteModelTool deleteModel:[HSStudent class] columnName:@"name" relation:HSColumnNameToValueRelationTypeEqual value:@"rrrr" uid:nil];
     
 }
 
@@ -86,7 +86,7 @@
 //    NSArray *array = [HSSqliteModelTool queryAllModels:[HSStudent class] uid:nil];
 //    NSLog(@"%@", array);
     
-    NSArray *results = [HSSqliteModelTool queryModels:[HSStudent class] columnName:@"name" relation:ColumnNameToValueRelationTypeEqual value:@"test3" uid:nil];
+    NSArray *results = [HSSqliteModelTool queryModels:[HSStudent class] columnName:@"name" relation:HSColumnNameToValueRelationTypeEqual value:@"test3" uid:nil];
     NSLog(@"%@", results);
     
     
